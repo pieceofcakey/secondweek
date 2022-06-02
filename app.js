@@ -22,7 +22,7 @@ const port = 3000;
 let db;
 
 MongoClient.connect(
-  'mongodb+srv://choi927:choi927@cluster0.2wcr6.mongodb.net/seohopost2?retryWrites=true&w=majority',
+  'mongodb+srv://<username>:<password>@cluster0.2wcr6.mongodb.net/seohopost2?retryWrites=true&w=majority',
   (error, client) => {
     if (error) return console.log(error);
     db = client.db('seohopost2');
