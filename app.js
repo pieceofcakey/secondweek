@@ -1,12 +1,29 @@
 const express = require('express');
 const app = express();
+
+const http = require('http').createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(http);
+
 const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
 const methodOverride = require('method-override');
+const { ObjectId } = require('mongodb');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
 const Joi = require('joi');
+const multer = require('multer');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './public/image');
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 app.use(
   session({ secret: 'secretcode', resave: true, saveUninitialized: false })
@@ -26,7 +43,7 @@ MongoClient.connect(
   (error, client) => {
     if (error) return console.log(error);
     db = client.db('seohopost2');
-    app.listen(port, () => console.log(`listening on ${port}`));
+    http.listen(port, () => console.log(`listening on ${port}`));
   }
 );
 
@@ -156,10 +173,10 @@ app.get('/list', (req, res) => {
     .find()
     .sort({ _id: -1 })
     .toArray((error, result) => {
-      console.log(result);
       res.render('list.ejs', { posts: result });
     });
 });
+
 app.get('/write', loggedin, (req, res) => {
   res.render('write.ejs');
 });
@@ -381,4 +398,105 @@ app.delete('/deletecomment', loggedin, (req, res) => {
       }
     }
   );
+});
+
+app.get('/upload', (req, res) => {
+  res.render('upload.ejs');
+});
+
+app.post('/upload', upload.single('profile'), (req, res) => {
+  res.send('업로드완료');
+});
+
+app.get('/image/:imgname', (req, res) => {
+  res.sendFile(__dirname + '/public/image/' + req.params.imgname);
+});
+
+app.get('/socket', (req, res) => {
+  res.render('socket.ejs');
+});
+
+// 방생성
+app.post('/chatroom', loggedin, (req, res) => {
+  const save = {
+    title: 'Room',
+    member: [ObjectId(req.body.당한사람id), req.user._id],
+    date: new Date(),
+  };
+  db.collection('chatroom')
+    .insertOne(save)
+    .then((result) => {
+      res.send('성공');
+    });
+});
+
+// 내가 속한 채팅방 리스트
+app.get('/chat', loggedin, (req, res) => {
+  db.collection('chatroom')
+    .find({ member: req.user._id })
+    .toArray()
+    .then((result) => {
+      res.render('chat.ejs', { data: result });
+    });
+});
+
+// 채팅 보내기
+app.post('/message', loggedin, (req, res) => {
+  let save = {
+    parent: req.body.parent,
+    content: req.body.content,
+    userid: req.user._id,
+    date: new Date(),
+  };
+  db.collection('message')
+    .insertOne(save)
+    .then((result) => {
+      console.log('저장성공');
+      res.send('저장성공');
+    });
+});
+
+// 메세지 가져오기(실시간)
+app.get('/message/:id', loggedin, function (req, res) {
+  res.writeHead(200, {
+    Connection: 'keep-alive',
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+  });
+
+  db.collection('message')
+    .find({ parent: req.params.id })
+    .toArray()
+    .then((result) => {
+      res.write('event: test\n');
+      res.write(`data: ${JSON.stringify(result)}\n\n`);
+    });
+
+  const pipeline = [{ $match: { 'fullDocument.parent': req.params.id } }];
+  const collection = db.collection('message');
+  const changeStream = collection.watch(pipeline);
+  changeStream.on('change', (result) => {
+    res.write('event: test\n');
+    res.write(`data: ${JSON.stringify([result.fullDocument])}\n\n`);
+  });
+});
+
+io.on('connection', function (socket) {
+  console.log(socket);
+  console.log(socket.id);
+
+  console.log('유저접속됨');
+
+  socket.on('room1-send', function (data) {
+    io.to('room1').emit('broadcast', data);
+  });
+
+  socket.on('joinroom', function (data) {
+    socket.join('room1');
+  });
+
+  socket.on('user-send', function (data) {
+    console.log(data);
+    io.emit('broadcast', data);
+  });
 });

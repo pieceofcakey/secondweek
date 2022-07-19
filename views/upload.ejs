@@ -16,50 +16,27 @@
       crossorigin="anonymous"
     />
 
-    <title>게시판</title>
+    <title>글쓰기</title>
   </head>
   <body>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <%- include('nav.html') %>
 
-    <h4 class="text-center mt-3">나의 게시판 목록</h4>
+    <div class="container mt-4">
+      <h4 class="text-center mb-3">업로드페이지</h4>
 
-    <div class="container">
-      <ul class="list-group">
-        <% for (let i = 0; i < posts.length; i++){ %>
-        <li class="list-group-item">
-          <a href="/content/<%= posts[i]._id%>">제목 : <%= posts[i].title %></a>
-          <p class="mt-2">작성자 : <%= posts[i].author%></p>
-          <p>게시일 : <%= posts[i].date%></p>
-          <a
-            class="btn btn-danger"
-            href="/delete/<%= posts[i]._id%>"
-            role="button"
-            >삭제</a
-          >
-          <button
-            class="btn btn-secondary chat"
-            data-id="<%= posts[i].authorId%>"
-          >
-            채팅하기
-          </button>
-        </li>
-        <% } %>
-      </ul>
+      <form method="POST" action="/upload" enctype="multipart/form-data">
+        <input type="file" name="profile" />
+        <button type="submit">전송</button>
+      </form>
     </div>
-
-    <script>
-      $('.chat').click(function (e) {
-        let id = e.target.dataset.id;
-        $.post('/chatroom', { 당한사람id: id }).then(() => {
-          console.log('성공');
-        });
-      });
-    </script>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+      integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+      crossorigin="anonymous"
+    ></script>
     <script
       src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
       integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
